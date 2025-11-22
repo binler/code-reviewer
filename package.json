@@ -1,0 +1,95 @@
+{
+  "name": "vscode-deepseek-agent",
+  "displayName": "DeepSeek AI Agent",
+  "description": "Agent AI tích hợp Ollama deepseek-v3 cho VS Code, trả lời tiếng Việt.",
+  "version": "1.0.0",
+  "publisher": "your-publisher",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["AI", "Other"],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onCommand:aiAgent.openPanel",
+    "onCommand:aiAgent.analyzeFile"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "aiAgent.openPanel",
+        "title": "DeepSeek Agent: Mở bảng phân tích"
+      },
+      {
+        "command": "aiAgent.analyzeFile",
+        "title": "DeepSeek Agent: Phân tích tệp hiện tại"
+      }
+    ],
+    "configuration": {
+      "title": "DeepSeek Agent",
+      "properties": {
+        "deepseekAgent.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:11434/api/generate",
+          "description": "URL API Ollama"
+        },
+        "deepseekAgent.model": {
+          "type": "string",
+          "default": "deepseek-v3",
+          "description": "Tên model Ollama (ví dụ: deepseek-v3)"
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "deepseek-agent",
+          "title": "DeepSeek",
+          "icon": "resources/deepseek.svg"
+        }
+      ]
+    },
+    "views": {
+      "deepseek-agent": [
+        {
+          "id": "deepseek.settings",
+          "name": "Cài đặt Ollama",
+          "type": "webview"
+        }
+      ]
+    },
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "aiAgent.analyzeFile",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "aiAgent.analyzeFile",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "aiAgents": [
+    {
+      "id": "deepseek-agent",
+      "name": "DeepSeek Agent",
+      "module": "./out/agents/deepseekAgent.js",
+      "description": "Agent AI sử dụng Ollama deepseek-v3, đầu ra tiếng Việt"
+    }
+  ],
+  "enabledApiProposals": ["ai"],
+  "scripts": {
+    "build": "tsc -p .",
+    "compile": "tsc -p .",
+    "typecheck": "tsc --noEmit",
+    "vscode:prepublish": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.6.2"
+  }
+}
