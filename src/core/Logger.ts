@@ -11,7 +11,7 @@ export class Logger {
 		this.channel = vscode.window.createOutputChannel(name)
 	}
 
-	static getInstance(name: string = 'Ollama Agent'): Logger {
+    static getInstance(name: string = 'Review Hộ'): Logger {
 		if (!Logger.instance) {
 			Logger.instance = new Logger(name)
 		}

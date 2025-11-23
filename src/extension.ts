@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 import { DeepseekPanel } from './panels/DeepseekPanel'
 import { SettingsViewProvider } from './views/settingsView'
+import { ReviewViewProvider } from './views/reviewView'
 import { Logger } from './core/Logger'
 import { COMMANDS, VIEWS } from './core/Constants'
 
@@ -78,6 +79,11 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.registerWebviewViewProvider(VIEWS.SETTINGS, settingsProvider)
 	)
 
+	const reviewProvider = new ReviewViewProvider()
+	context.subscriptions.push(
+		vscode.window.registerWebviewViewProvider(VIEWS.REVIEW, reviewProvider)
+	)
+
 	// Register logger for disposal
 	context.subscriptions.push({
 		dispose: () => {
@@ -96,4 +102,3 @@ export function deactivate() {
 	const logger = Logger.getInstance()
 	logger.info('Extension deactivated')
 }
-

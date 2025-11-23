@@ -1,7 +1,7 @@
 {
   "name": "vscode-deepseek-agent",
-  "displayName": "DeepSeek AI Agent",
-  "description": "Agent AI tích hợp Ollama deepseek-v3 cho VS Code, trả lời tiếng Việt.",
+  "displayName": "Review Hộ",
+  "description": "Trợ lý review code tích hợp Ollama (deepseek-v3) cho VS Code, tiếng Việt.",
   "version": "1.0.0",
   "publisher": "your-publisher",
   "engines": {
@@ -11,7 +11,9 @@
   "main": "./out/extension.js",
   "activationEvents": [
     "onCommand:aiAgent.openPanel",
-    "onCommand:aiAgent.analyzeFile"
+    "onCommand:aiAgent.analyzeFile",
+    "onView:deepseek.settings",
+    "onView:deepseek.review"
   ],
   "contributes": {
     "commands": [
@@ -43,7 +45,7 @@
       "activitybar": [
         {
           "id": "deepseek-agent",
-          "title": "DeepSeek",
+          "title": "Review Hộ",
           "icon": "resources/deepseek.svg"
         }
       ]
@@ -53,6 +55,11 @@
         {
           "id": "deepseek.settings",
           "name": "Cài đặt Ollama",
+          "type": "webview"
+        },
+        {
+          "id": "deepseek.review",
+          "name": "Code Review",
           "type": "webview"
         }
       ]
