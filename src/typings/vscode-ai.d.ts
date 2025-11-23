@@ -1,4 +1,3 @@
 declare module '@vscode/ai' {
-  export function isAvailable(): boolean
+	export function isAvailable(): boolean
 }
-

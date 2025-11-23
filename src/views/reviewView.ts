@@ -5,196 +5,196 @@ import * as path from 'path'
 import { DiffService } from '../services/DiffService'
 
 export class ReviewViewProvider implements vscode.WebviewViewProvider {
-  private view?: vscode.WebviewView
-  private lastGitError?: string
-  private diff = new DiffService()
-  private fileDecos = new Map<string, vscode.TextEditorDecorationType[]>()
-  private fileThreads = new Map<string, vscode.CommentThread[]>()
-  private commentController = vscode.comments.createCommentController('deepseek-review', 'Code Review')
+	private view?: vscode.WebviewView
+	private lastGitError?: string
+	private diff = new DiffService()
+	private fileDecos = new Map<string, vscode.TextEditorDecorationType[]>()
+	private fileThreads = new Map<string, vscode.CommentThread[]>()
+	private commentController = vscode.comments.createCommentController('deepseek-review', 'Code Review')
 
-  resolveWebviewView(webviewView: vscode.WebviewView) {
-    this.view = webviewView
-    webviewView.webview.options = { enableScripts: true }
-    webviewView.webview.html = getHtml(webviewView.webview)
-    webviewView.onDidDispose(() => {
-      this.commentController.dispose()
-    })
-    webviewView.webview.onDidReceiveMessage(async msg => {
-      if (msg?.type === 'loadBranches') {
-        const branches = await this.getBranches()
-        webviewView.webview.postMessage({ type: 'branches', payload: branches, error: this.lastGitError })
-      } else if (msg?.type === 'startReview') {
-        const from = String(msg.from || '')
-        const to = String(msg.to || '')
-        let files = from && to ? await this.getChangedFilesBetweenBranches(from, to) : []
-        if (msg.work || files.length === 0) {
-          const workFiles = await this.getChangedFiles()
-          const set = new Set<string>(files)
-          for (const f of workFiles) set.add(f)
-          files = Array.from(set)
-        }
-        webviewView.webview.postMessage({ type: 'files', payload: files, error: this.lastGitError })
-        for (const f of files) {
-          const uri = vscode.Uri.file(f)
-          const buf = await vscode.workspace.fs.readFile(uri)
-          const text = Buffer.from(buf).toString('utf8')
-          const result = await analyzeWithDeepseek(text)
-          webviewView.webview.postMessage({ type: 'fileResult', payload: { file: f, result } })
-          await this.applyDecorations(uri, text, result.improved_code || text, result)
-        }
-      } else if (msg?.type === 'stopReview') {
-        webviewView.webview.postMessage({ type: 'stopped' })
-      } else if (msg?.type === 'openFile') {
-        const uri = vscode.Uri.file(String(msg.file || ''))
-        vscode.window.showTextDocument(uri)
-      } else if (msg?.type === 'applyImprovedFile') {
-        const uri = vscode.Uri.file(String(msg.file || ''))
-        const doc = await vscode.workspace.openTextDocument(uri)
-        const editor = await vscode.window.showTextDocument(doc)
-        const improved = String(msg.code || '')
-        const full = new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length))
-        await editor.edit(ed => ed.replace(full, improved))
-        vscode.window.showInformationMessage('Đã áp dụng mã cải thiện')
-      } else if (msg?.type === 'previewImprovedFile') {
-        const uri = vscode.Uri.file(String(msg.file || ''))
-        const baseDoc = await vscode.workspace.openTextDocument(uri)
-        const improved = String(msg.code || '')
-        const right = await vscode.workspace.openTextDocument({ content: improved, language: baseDoc.languageId })
-        await vscode.commands.executeCommand('vscode.diff', baseDoc.uri, right.uri, `Diff: ${path.basename(uri.fsPath)} ↔ improved`)
-      }
-    })
-  }
+	resolveWebviewView(webviewView: vscode.WebviewView) {
+		this.view = webviewView
+		webviewView.webview.options = { enableScripts: true }
+		webviewView.webview.html = getHtml(webviewView.webview)
+		webviewView.onDidDispose(() => {
+			this.commentController.dispose()
+		})
+		webviewView.webview.onDidReceiveMessage(async msg => {
+			if (msg?.type === 'loadBranches') {
+				const branches = await this.getBranches()
+				webviewView.webview.postMessage({ type: 'branches', payload: branches, error: this.lastGitError })
+			} else if (msg?.type === 'startReview') {
+				const from = String(msg.from || '')
+				const to = String(msg.to || '')
+				let files = from && to ? await this.getChangedFilesBetweenBranches(from, to) : []
+				if (msg.work || files.length === 0) {
+					const workFiles = await this.getChangedFiles()
+					const set = new Set<string>(files)
+					for (const f of workFiles) set.add(f)
+					files = Array.from(set)
+				}
+				webviewView.webview.postMessage({ type: 'files', payload: files, error: this.lastGitError })
+				for (const f of files) {
+					const uri = vscode.Uri.file(f)
+					const buf = await vscode.workspace.fs.readFile(uri)
+					const text = Buffer.from(buf).toString('utf8')
+					const result = await analyzeWithDeepseek(text)
+					webviewView.webview.postMessage({ type: 'fileResult', payload: { file: f, result } })
+					await this.applyDecorations(uri, text, result.improved_code || text, result)
+				}
+			} else if (msg?.type === 'stopReview') {
+				webviewView.webview.postMessage({ type: 'stopped' })
+			} else if (msg?.type === 'openFile') {
+				const uri = vscode.Uri.file(String(msg.file || ''))
+				vscode.window.showTextDocument(uri)
+			} else if (msg?.type === 'applyImprovedFile') {
+				const uri = vscode.Uri.file(String(msg.file || ''))
+				const doc = await vscode.workspace.openTextDocument(uri)
+				const editor = await vscode.window.showTextDocument(doc)
+				const improved = String(msg.code || '')
+				const full = new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length))
+				await editor.edit(ed => ed.replace(full, improved))
+				vscode.window.showInformationMessage('Đã áp dụng mã cải thiện')
+			} else if (msg?.type === 'previewImprovedFile') {
+				const uri = vscode.Uri.file(String(msg.file || ''))
+				const baseDoc = await vscode.workspace.openTextDocument(uri)
+				const improved = String(msg.code || '')
+				const right = await vscode.workspace.openTextDocument({ content: improved, language: baseDoc.languageId })
+				await vscode.commands.executeCommand('vscode.diff', baseDoc.uri, right.uri, `Diff: ${path.basename(uri.fsPath)} ↔ improved`)
+			}
+		})
+	}
 
-  // Ping API đã được chuyển lên view Cài đặt
+	// Ping API đã được chuyển lên view Cài đặt
 
-  private async getChangedFiles(): Promise<string[]> {
-    const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
-    if (!root) { this.lastGitError = 'Không có workspace'; return [] }
-    try {
-      const gitUri = vscode.Uri.file(path.join(root, '.git'))
-      await vscode.workspace.fs.stat(gitUri)
-    } catch {
-      this.lastGitError = 'Workspace không phải repository Git'
-      return []
-    }
-    const out = await this.safeExec('git status --porcelain', root)
-    const files: string[] = []
-    const lines = out.split(/\r?\n/).filter(Boolean)
-    for (const l of lines) {
-      const code = l.slice(0, 2).trim()
-      const f = l.slice(3).trim()
-      if (!f) continue
-      if (['M', 'A', 'R'].includes(code) || l.startsWith(' M') || l.startsWith('A ') || l.startsWith('R ')) files.push(path.join(root, f))
-    }
-    return files
-  }
+	private async getChangedFiles(): Promise<string[]> {
+		const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+		if (!root) { this.lastGitError = 'Không có workspace'; return [] }
+		try {
+			const gitUri = vscode.Uri.file(path.join(root, '.git'))
+			await vscode.workspace.fs.stat(gitUri)
+		} catch {
+			this.lastGitError = 'Workspace không phải repository Git'
+			return []
+		}
+		const out = await this.safeExec('git status --porcelain', root)
+		const files: string[] = []
+		const lines = out.split(/\r?\n/).filter(Boolean)
+		for (const l of lines) {
+			const code = l.slice(0, 2).trim()
+			const f = l.slice(3).trim()
+			if (!f) continue
+			if (['M', 'A', 'R'].includes(code) || l.startsWith(' M') || l.startsWith('A ') || l.startsWith('R ')) files.push(path.join(root, f))
+		}
+		return files
+	}
 
-  private async getBranches(): Promise<{ branches: string[]; current?: string }> {
-    const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
-    if (!root) { this.lastGitError = 'Không có workspace'; return { branches: [] } }
-    const list = await this.safeExec('git branch --format="%(refname:short)"', root)
-    const current = (await this.safeExec('git rev-parse --abbrev-ref HEAD', root)).trim()
-    return { branches: list.split(/\r?\n/).filter(Boolean), current }
-  }
+	private async getBranches(): Promise<{ branches: string[]; current?: string }> {
+		const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+		if (!root) { this.lastGitError = 'Không có workspace'; return { branches: [] } }
+		const list = await this.safeExec('git branch --format="%(refname:short)"', root)
+		const current = (await this.safeExec('git rev-parse --abbrev-ref HEAD', root)).trim()
+		return { branches: list.split(/\r?\n/).filter(Boolean), current }
+	}
 
-  private async getChangedFilesBetweenBranches(from: string, to: string): Promise<string[]> {
-    const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
-    if (!root) { this.lastGitError = 'Không có workspace'; return [] }
-    const out = await this.safeExec(`git diff --name-only ${from}..${to}`, root)
-    return out.split(/\r?\n/).filter(Boolean).map(f => path.join(root, f))
-  }
+	private async getChangedFilesBetweenBranches(from: string, to: string): Promise<string[]> {
+		const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+		if (!root) { this.lastGitError = 'Không có workspace'; return [] }
+		const out = await this.safeExec(`git diff --name-only ${from}..${to}`, root)
+		return out.split(/\r?\n/).filter(Boolean).map(f => path.join(root, f))
+	}
 
-  private async safeExec(cmd: string, cwd: string): Promise<string> {
-    return await new Promise<string>((resolve) => {
-      try {
-        exec(cmd, { cwd }, (err, stdout, stderr) => {
-          if (err) {
-            this.lastGitError = err.message
-            vscode.window.showWarningMessage(`Git lỗi: ${err.message}`)
-            resolve('')
-            return
-          }
-          if (stderr && !stdout) {
-            this.lastGitError = stderr
-            resolve('')
-            return
-          }
-          this.lastGitError = undefined
-          resolve(stdout || '')
-        })
-      } catch (e: any) {
-        this.lastGitError = String(e?.message || e)
-        vscode.window.showWarningMessage(`Không thể chạy git: ${e?.message || e}`)
-        resolve('')
-      }
-    })
-  }
+	private async safeExec(cmd: string, cwd: string): Promise<string> {
+		return await new Promise<string>((resolve) => {
+			try {
+				exec(cmd, { cwd }, (err, stdout, stderr) => {
+					if (err) {
+						this.lastGitError = err.message
+						vscode.window.showWarningMessage(`Git lỗi: ${err.message}`)
+						resolve('')
+						return
+					}
+					if (stderr && !stdout) {
+						this.lastGitError = stderr
+						resolve('')
+						return
+					}
+					this.lastGitError = undefined
+					resolve(stdout || '')
+				})
+			} catch (e: any) {
+				this.lastGitError = String(e?.message || e)
+				vscode.window.showWarningMessage(`Không thể chạy git: ${e?.message || e}`)
+				resolve('')
+			}
+		})
+	}
 
-  private async applyDecorations(uri: vscode.Uri, original: string, improved: string, payload: any): Promise<void> {
-    try {
-      const doc = await vscode.workspace.openTextDocument(uri)
-      const editor = await vscode.window.showTextDocument(doc, { preview: false })
-      const hunks = this.diff.computeHunks(original, improved)
-      const potential = vscode.window.createTextEditorDecorationType({ isWholeLine: true, borderWidth: '0 0 0 3px', borderColor: '#e51400', backgroundColor: 'rgba(229,20,0,0.08)' })
-      const refactor = vscode.window.createTextEditorDecorationType({ isWholeLine: true, borderWidth: '0 0 0 3px', borderColor: '#007acc', backgroundColor: 'rgba(0,122,204,0.08)' })
-      const potRanges: vscode.DecorationOptions[] = []
-      const refRanges: vscode.DecorationOptions[] = []
-      for (const h of hunks) {
-        const start = h.startLine < doc.lineCount ? doc.lineAt(Math.max(h.startLine, 0)).range.start : doc.lineAt(doc.lineCount - 1).range.end
-        const end = h.endLine >= h.startLine && h.endLine < doc.lineCount ? doc.lineAt(h.endLine).range.end : start
-        const hover = new vscode.MarkdownString()
-        const badge = ((payload?.summary || '') + (payload?.code_fix || '') + (payload?.reasoning || '')).toLowerCase().includes('lỗi') ? 'Potential Issue' : 'Refactor Suggestion'
-        hover.appendMarkdown(`**${badge}**\n\n`)
-        const minus = h.oldLines.map(l => `- ${l}`).join('\n')
-        const plus = h.newLines.map(l => `+ ${l}`).join('\n')
-        hover.appendCodeblock(`${minus}\n${plus}`)
-        const opt = { range: new vscode.Range(start, end), hoverMessage: hover }
-        if (badge === 'Potential Issue') potRanges.push(opt)
-        else refRanges.push(opt)
-      }
-      editor.setDecorations(potential, potRanges)
-      editor.setDecorations(refactor, refRanges)
-      const key = uri.fsPath
-      const prev = this.fileDecos.get(key) || []
-      prev.forEach(d => d.dispose())
-      this.fileDecos.set(key, [potential, refactor])
+	private async applyDecorations(uri: vscode.Uri, original: string, improved: string, payload: any): Promise<void> {
+		try {
+			const doc = await vscode.workspace.openTextDocument(uri)
+			const editor = await vscode.window.showTextDocument(doc, { preview: false })
+			const hunks = this.diff.computeHunks(original, improved)
+			const potential = vscode.window.createTextEditorDecorationType({ isWholeLine: true, borderWidth: '0 0 0 3px', borderColor: '#e51400', backgroundColor: 'rgba(229,20,0,0.08)' })
+			const refactor = vscode.window.createTextEditorDecorationType({ isWholeLine: true, borderWidth: '0 0 0 3px', borderColor: '#007acc', backgroundColor: 'rgba(0,122,204,0.08)' })
+			const potRanges: vscode.DecorationOptions[] = []
+			const refRanges: vscode.DecorationOptions[] = []
+			for (const h of hunks) {
+				const start = h.startLine < doc.lineCount ? doc.lineAt(Math.max(h.startLine, 0)).range.start : doc.lineAt(doc.lineCount - 1).range.end
+				const end = h.endLine >= h.startLine && h.endLine < doc.lineCount ? doc.lineAt(h.endLine).range.end : start
+				const hover = new vscode.MarkdownString()
+				const badge = ((payload?.summary || '') + (payload?.code_fix || '') + (payload?.reasoning || '')).toLowerCase().includes('lỗi') ? 'Potential Issue' : 'Refactor Suggestion'
+				hover.appendMarkdown(`**${badge}**\n\n`)
+				const minus = h.oldLines.map(l => `- ${l}`).join('\n')
+				const plus = h.newLines.map(l => `+ ${l}`).join('\n')
+				hover.appendCodeblock(`${minus}\n${plus}`)
+				const opt = { range: new vscode.Range(start, end), hoverMessage: hover }
+				if (badge === 'Potential Issue') potRanges.push(opt)
+				else refRanges.push(opt)
+			}
+			editor.setDecorations(potential, potRanges)
+			editor.setDecorations(refactor, refRanges)
+			const key = uri.fsPath
+			const prev = this.fileDecos.get(key) || []
+			prev.forEach(d => d.dispose())
+			this.fileDecos.set(key, [potential, refactor])
 
-      const prevThreads = this.fileThreads.get(key) || []
-      prevThreads.forEach(t => t.dispose())
-      const threads: vscode.CommentThread[] = []
-      for (const h of hunks) {
-        const start = h.startLine < doc.lineCount ? doc.lineAt(Math.max(h.startLine, 0)).range.start : doc.lineAt(doc.lineCount - 1).range.end
-        const end = h.endLine >= h.startLine && h.endLine < doc.lineCount ? doc.lineAt(h.endLine).range.end : start
-        const badge = ((payload?.summary || '') + (payload?.code_fix || '') + (payload?.reasoning || '')).toLowerCase().includes('lỗi') ? 'Potential Issue' : 'Refactor Suggestion'
-        const md = new vscode.MarkdownString()
-        md.isTrusted = true
-        md.appendMarkdown(`### ${badge}\n\n`)
-        if (badge === 'Potential Issue') {
-          md.appendMarkdown(`${payload?.summary || ''}\n\n`)
-        } else {
-          md.appendMarkdown(`${payload?.code_fix || ''}\n\n`)
-        }
-        const minus = h.oldLines.map(l => `- ${l}`).join('\n')
-        const plus = h.newLines.map(l => `+ ${l}`).join('\n')
-        md.appendCodeblock(`${minus}\n${plus}`)
-        const thread = this.commentController.createCommentThread(uri, new vscode.Range(start, end), [
-          {
-            body: md,
-            mode: vscode.CommentMode.Preview,
-            author: { name: 'CodeRabbit' },
-            label: badge
-          } as vscode.Comment
-        ])
-        threads.push(thread)
-      }
-      this.fileThreads.set(key, threads)
-    } catch {}
-  }
+			const prevThreads = this.fileThreads.get(key) || []
+			prevThreads.forEach(t => t.dispose())
+			const threads: vscode.CommentThread[] = []
+			for (const h of hunks) {
+				const start = h.startLine < doc.lineCount ? doc.lineAt(Math.max(h.startLine, 0)).range.start : doc.lineAt(doc.lineCount - 1).range.end
+				const end = h.endLine >= h.startLine && h.endLine < doc.lineCount ? doc.lineAt(h.endLine).range.end : start
+				const badge = ((payload?.summary || '') + (payload?.code_fix || '') + (payload?.reasoning || '')).toLowerCase().includes('lỗi') ? 'Potential Issue' : 'Refactor Suggestion'
+				const md = new vscode.MarkdownString()
+				md.isTrusted = true
+				md.appendMarkdown(`### ${badge}\n\n`)
+				if (badge === 'Potential Issue') {
+					md.appendMarkdown(`${payload?.summary || ''}\n\n`)
+				} else {
+					md.appendMarkdown(`${payload?.code_fix || ''}\n\n`)
+				}
+				const minus = h.oldLines.map(l => `- ${l}`).join('\n')
+				const plus = h.newLines.map(l => `+ ${l}`).join('\n')
+				md.appendCodeblock(`${minus}\n${plus}`)
+				const thread = this.commentController.createCommentThread(uri, new vscode.Range(start, end), [
+					{
+						body: md,
+						mode: vscode.CommentMode.Preview,
+						author: { name: 'CodeRabbit' },
+						label: badge
+					} as vscode.Comment
+				])
+				threads.push(thread)
+			}
+			this.fileThreads.set(key, threads)
+		} catch { }
+	}
 }
 
 function getHtml(webview: vscode.Webview) {
-  const csp = `default-src 'none'; img-src ${webview.cspSource} https:; script-src 'unsafe-inline' ${webview.cspSource}; style-src 'unsafe-inline';`
-  const css = `
+	const csp = `default-src 'none'; img-src ${webview.cspSource} https:; script-src 'unsafe-inline' ${webview.cspSource}; style-src 'unsafe-inline';`
+	const css = `
     :root{--bg:#0f111a;--card:#151820;--border:#2a2f3a;--text:#e6e6e6;--muted:#9aa4b2;--primary:#3b82f6;--danger:#ef4444;--success:#22c55e}
     *{box-sizing:border-box}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);padding:12px}
@@ -222,7 +222,7 @@ function getHtml(webview: vscode.Webview) {
     .item-desc{color:var(--text)}
     .empty{color:var(--muted)}
   `
-  const html = `
+	const html = `
     <!doctype html><html lang="vi"><head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Security-Policy" content="${csp}">
@@ -360,5 +360,5 @@ function getHtml(webview: vscode.Webview) {
       </script>
     </body></html>
   `
-  return html
+	return html
 }
