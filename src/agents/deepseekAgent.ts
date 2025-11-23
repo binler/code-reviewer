@@ -1,5 +1,3 @@
-import type * as ai from '@vscode/ai'
-import * as vscode from 'vscode'
 import { ConfigService } from '../services/ConfigService'
 import { Logger } from '../core/Logger'
 import { DEFAULTS } from '../core/Constants'
@@ -14,10 +12,38 @@ type AgentOutput = {
 }
 
 function buildPrompt(input: string) {
-	const tpl = `Bạn là trợ lý đánh giá và cải thiện mã. Trả lời CHỈ bằng JSON với các trường: type, language, summary, code_fix, reasoning, improved_code. Luôn dùng tiếng Việt cho summary, code_fix, reasoning. Không thêm văn bản ngoài JSON.
-Mã nguồn:
-\n\n${input}\n\n`.
-		concat('Yêu cầu: Phân tích vấn đề, đề xuất chỉnh sửa, giải thích ngắn gọn, và cung cấp phiên bản mã đã cải thiện.')
+	const tpl = `You are an expert code reviewer and refactoring specialist. Your task is to analyze the provided source code and provide a comprehensive review with actionable improvements.
+
+CRITICAL REQUIREMENTS:
+1. Respond ONLY with valid JSON (no additional text before or after)
+2. Include ALL required fields: type, language, summary, code_fix, reasoning, improved_code
+3. Ensure the response is well-formed and parseable JSON
+4. Write summary, code_fix, and reasoning fields in Vietnamese (tiếng Việt)
+5. Keep improved_code in the original language of the source code
+
+SOURCE CODE TO REVIEW:
+\`\`\`
+${input}
+\`\`\`
+
+REVIEW GUIDELINES:
+1. Identify critical issues: security vulnerabilities, performance problems, memory leaks, logic errors
+2. Check code quality: readability, maintainability, naming conventions, code style
+3. Analyze best practices: design patterns, SOLID principles, error handling
+4. Suggest concrete improvements: refactoring opportunities, optimization techniques
+5. Consider edge cases: null checks, boundary conditions, error scenarios
+
+RESPONSE JSON STRUCTURE (must be valid JSON):
+{
+  "type": "suggestion",
+  "language": "vi",
+  "summary": "Concise summary of main issues found (max 150 chars)",
+  "code_fix": "Specific issues identified and how to fix them",
+  "reasoning": "Detailed explanation of why these changes are important",
+  "improved_code": "Complete refactored version of the code with improvements applied"
+}
+
+Provide the JSON response EXACTLY as specified above, ensuring all Vietnamese fields contain meaningful content and are properly formatted.`
 	return tpl
 }
 

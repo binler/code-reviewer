@@ -3,7 +3,7 @@
  */
 
 // Configuration section name
-export const CONFIG_SECTION = 'deepseekAgent'
+export const CONFIG_SECTION = 'OllamaAgent'
 
 // Configuration keys
 export const CONFIG_KEYS = {
@@ -37,8 +37,8 @@ export const MESSAGE_TYPES = {
 // Default configuration values
 export const DEFAULTS = {
 	API_URL: 'http://localhost:11434/api/generate',
-	MODEL: 'deepseek-v3',
-	REQUEST_TIMEOUT_MS: 30000, // 30 seconds
+	MODEL: 'gpt-oss:120b-cloud',
+	REQUEST_TIMEOUT_MS: 60000, // 60 seconds
 } as const
 
 // View IDs
