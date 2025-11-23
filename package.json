@@ -1,102 +1,107 @@
 {
-  "name": "vscode-deepseek-agent",
-  "displayName": "Review Hộ",
-  "description": "Trợ lý review code tích hợp Ollama (deepseek-v3) cho VS Code, tiếng Việt.",
-  "version": "1.0.0",
-  "publisher": "your-publisher",
-  "engines": {
-    "vscode": "^1.90.0"
-  },
-  "categories": ["AI", "Other"],
-  "main": "./out/extension.js",
-  "activationEvents": [
-    "onCommand:aiAgent.openPanel",
-    "onCommand:aiAgent.analyzeFile",
-    "onView:deepseek.settings",
-    "onView:deepseek.review"
-  ],
-  "contributes": {
-    "commands": [
-      {
-        "command": "aiAgent.openPanel",
-        "title": "DeepSeek Agent: Mở bảng phân tích"
-      },
-      {
-        "command": "aiAgent.analyzeFile",
-        "title": "DeepSeek Agent: Phân tích tệp hiện tại"
-      }
-    ],
-    "configuration": {
-      "title": "DeepSeek Agent",
-      "properties": {
-        "deepseekAgent.apiUrl": {
-          "type": "string",
-          "default": "http://localhost:11434/api/generate",
-          "description": "URL API Ollama"
-        },
-        "deepseekAgent.model": {
-          "type": "string",
-          "default": "deepseek-v3",
-          "description": "Tên model Ollama (ví dụ: deepseek-v3)"
-        }
-      }
-    },
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "deepseek-agent",
-          "title": "Review Hộ",
-          "icon": "resources/reviewho.svg"
-        }
-      ]
-    },
-    "views": {
-      "deepseek-agent": [
-        {
-          "id": "deepseek.settings",
-          "name": "Cài đặt Ollama",
-          "type": "webview"
-        },
-        {
-          "id": "deepseek.review",
-          "name": "Code Review",
-          "type": "webview"
-        }
-      ]
-    },
-    "menus": {
-      "explorer/context": [
-        {
-          "command": "aiAgent.analyzeFile",
-          "group": "navigation"
-        }
-      ],
-      "editor/context": [
-        {
-          "command": "aiAgent.analyzeFile",
-          "group": "navigation"
-        }
-      ]
-    }
-  },
-  "aiAgents": [
-    {
-      "id": "deepseek-agent",
-      "name": "DeepSeek Agent",
-      "module": "./out/agents/deepseekAgent.js",
-      "description": "Agent AI sử dụng Ollama deepseek-v3, đầu ra tiếng Việt"
-    }
-  ],
-  "enabledApiProposals": ["ai"],
-  "scripts": {
-    "build": "tsc -p .",
-    "compile": "tsc -p .",
-    "typecheck": "tsc --noEmit",
-    "vscode:prepublish": "npm run build"
-  },
-  "devDependencies": {
-    "@types/node": "^20.11.0",
-    "@types/vscode": "^1.90.0",
-    "typescript": "^5.6.2"
-  }
+	"name": "vscode-review-ho",
+	"displayName": "Review Hộ",
+	"description": "Trợ lý review code tích hợp Ollama, hỗ trợ mọi model, tiếng Việt.",
+	"version": "1.0.0",
+	"publisher": "your-publisher",
+	"engines": {
+		"vscode": "^1.90.0"
+	},
+	"categories": [
+		"AI",
+		"Other"
+	],
+	"main": "./out/extension.js",
+	"activationEvents": [
+		"onCommand:aiAgent.openPanel",
+		"onCommand:aiAgent.analyzeFile",
+		"onView:reviewho.settings",
+		"onView:reviewho.review"
+	],
+	"contributes": {
+		"commands": [
+			{
+				"command": "aiAgent.openPanel",
+				"title": "Review Hộ: Mở bảng phân tích"
+			},
+			{
+				"command": "aiAgent.analyzeFile",
+				"title": "Review Hộ: Phân tích tệp hiện tại"
+			}
+		],
+		"configuration": {
+			"title": "Review Hộ",
+			"properties": {
+				"reviewHo.apiUrl": {
+					"type": "string",
+					"default": "http://localhost:11434/api/generate",
+					"description": "URL API Ollama"
+				},
+				"reviewHo.model": {
+					"type": "string",
+					"default": "llama3.2:latest",
+					"description": "Tên model Ollama (ví dụ: llama3.2:latest)"
+				}
+			}
+		},
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "review-ho",
+					"title": "Review Hộ",
+					"icon": "resources\\reviewho.svg"
+				}
+			]
+		},
+		"views": {
+			"review-ho": [
+				{
+					"id": "reviewho.settings",
+					"name": "Cài đặt Ollama",
+					"type": "webview"
+				},
+				{
+					"id": "reviewho.review",
+					"name": "Code Review",
+					"type": "webview"
+				}
+			]
+		},
+		"menus": {
+			"explorer/context": [
+				{
+					"command": "aiAgent.analyzeFile",
+					"group": "navigation"
+				}
+			],
+			"editor/context": [
+				{
+					"command": "aiAgent.analyzeFile",
+					"group": "navigation"
+				}
+			]
+		}
+	},
+	"aiAgents": [
+		{
+			"id": "reviewho-agent",
+			"name": "Review Hộ Agent",
+			"module": "./out/agents/ollamaAgent.js",
+			"description": "Agent AI sử dụng Ollama, hỗ trợ bất kỳ model"
+		}
+	],
+	"enabledApiProposals": [
+		"ai"
+	],
+	"scripts": {
+		"build": "tsc -p .",
+		"compile": "tsc -p .",
+		"typecheck": "tsc --noEmit",
+		"vscode:prepublish": "npm run build"
+	},
+	"devDependencies": {
+		"@types/node": "^20.11.0",
+		"@types/vscode": "^1.90.0",
+		"typescript": "^5.6.2"
+	}
 }

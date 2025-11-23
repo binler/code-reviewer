@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { analyzeWithDeepseek } from '../agents/deepseekAgent'
+import { analyzeWithOllama } from '../agents/ollamaAgent'
 import { exec } from 'child_process'
 import * as path from 'path'
 import { DiffService } from '../services/DiffService'
@@ -38,7 +38,7 @@ export class ReviewViewProvider implements vscode.WebviewViewProvider {
 					const uri = vscode.Uri.file(f)
 					const buf = await vscode.workspace.fs.readFile(uri)
 					const text = Buffer.from(buf).toString('utf8')
-					const result = await analyzeWithDeepseek(text)
+					const result = await analyzeWithOllama(text)
 					webviewView.webview.postMessage({ type: 'fileResult', payload: { file: f, result } })
 					await this.applyDecorations(uri, text, result.improved_code || text, result)
 				}
@@ -60,7 +60,7 @@ export class ReviewViewProvider implements vscode.WebviewViewProvider {
 				const baseDoc = await vscode.workspace.openTextDocument(uri)
 				const improved = String(msg.code || '')
 				const right = await vscode.workspace.openTextDocument({ content: improved, language: baseDoc.languageId })
-				await vscode.commands.executeCommand('vscode.diff', baseDoc.uri, right.uri, `Diff: ${path.basename(uri.fsPath)} ↔ improved`)
+				await vscode.commands.executeCommand('vscode.diff', baseDoc.uri, right.uri, `Diff: ${path.basename(uri.fsPath)} ↔ cải thiện`)
 			}
 		})
 	}

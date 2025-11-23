@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import * as crypto from 'crypto'
-import { analyzeWithDeepseek } from '../agents/deepseekAgent'
+import { analyzeWithOllama } from '../agents/ollamaAgent'
 import { DiffService, Hunk } from '../services/DiffService'
 import { ConfigService } from '../services/ConfigService'
 import { Logger } from '../core/Logger'
@@ -10,8 +10,8 @@ import { MESSAGE_TYPES } from '../core/Constants'
  * Manages the DeepSeek Agent webview panel with proper resource disposal
  * Implements singleton pattern to prevent multiple instances
  */
-export class DeepseekPanel {
-	private static instance: DeepseekPanel | undefined
+export class ReviewPanel {
+    private static instance: ReviewPanel | undefined
 	private panel: vscode.WebviewPanel
 	private disposables: vscode.Disposable[] = []
 	private lastAnalyzedDocUri: vscode.Uri | undefined
@@ -53,17 +53,17 @@ export class DeepseekPanel {
 	/**
 	 * Create or show existing panel (singleton pattern)
 	 */
-	static async createOrShow(context: vscode.ExtensionContext): Promise<DeepseekPanel> {
-		if (DeepseekPanel.instance) {
-			DeepseekPanel.instance.logger.info('Revealing existing panel')
-			DeepseekPanel.instance.panel.reveal()
-			return DeepseekPanel.instance
-		}
+    static async createOrShow(context: vscode.ExtensionContext): Promise<ReviewPanel> {
+        if (ReviewPanel.instance) {
+            ReviewPanel.instance.logger.info('Revealing existing panel')
+            ReviewPanel.instance.panel.reveal()
+            return ReviewPanel.instance
+        }
 
-		const panel = new DeepseekPanel(context)
-		DeepseekPanel.instance = panel
-		return panel
-	}
+        const panel = new ReviewPanel(context)
+        ReviewPanel.instance = panel
+        return panel
+    }
 
 	/**
 	 * Load HTML content into webview
@@ -165,7 +165,7 @@ export class DeepseekPanel {
 			async (progress) => {
 				progress.report({ message: 'Đang phân tích...', increment: 0 })
 
-				const result = await analyzeWithDeepseek(text)
+                const result = await analyzeWithOllama(text)
 				const hunks = this.diffService.computeHunks(text, result.improved_code || text)
 
 				progress.report({ increment: 100 })
@@ -196,7 +196,7 @@ export class DeepseekPanel {
 			async (progress) => {
 				progress.report({ message: 'Đang phân tích...', increment: 0 })
 
-				const result = await analyzeWithDeepseek(text)
+                const result = await analyzeWithOllama(text)
 				const hunks = this.diffService.computeHunks(text, result.improved_code || text)
 
 				progress.report({ increment: 100 })
@@ -327,8 +327,8 @@ export class DeepseekPanel {
 	 * Clean up resources
 	 */
 	dispose(): void {
-		this.logger.info('Disposing DeepSeek panel')
-		DeepseekPanel.instance = undefined
+        this.logger.info('Disposing Review Hộ panel')
+        ReviewPanel.instance = undefined
 
 		this.panel.dispose()
 

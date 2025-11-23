@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { DeepseekPanel } from './panels/DeepseekPanel'
+import { ReviewPanel } from './panels/ReviewPanel'
 import { SettingsViewProvider } from './views/settingsView'
 import { ReviewViewProvider } from './views/reviewView'
 import { Logger } from './core/Logger'
@@ -10,7 +10,7 @@ import { COMMANDS, VIEWS } from './core/Constants'
  */
 export function activate(context: vscode.ExtensionContext) {
 	const logger = Logger.getInstance()
-	logger.info('Activating DeepSeek Agent extension')
+	logger.info('Activating Review Hộ extension')
 
 	// Check workspace trust
 	if (!vscode.workspace.isTrusted) {
@@ -26,7 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand(COMMANDS.OPEN_PANEL, async () => {
 			try {
 				logger.info('Executing openPanel command')
-				const panel = await DeepseekPanel.createOrShow(context)
+				const panel = await ReviewPanel.createOrShow(context)
 
 				// Send ready message if there's an active editor
 				if (vscode.window.activeTextEditor) {
@@ -51,7 +51,7 @@ export function activate(context: vscode.ExtensionContext) {
 					return
 				}
 
-				const panel = await DeepseekPanel.createOrShow(context)
+				const panel = await ReviewPanel.createOrShow(context)
 
 				if (uri) {
 					// Analyze specific file from context menu
@@ -92,7 +92,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	})
 
-	logger.info('DeepSeek Agent extension activated successfully')
+	logger.info('Review Hộ extension activated successfully')
 }
 
 /**
@@ -100,5 +100,5 @@ export function activate(context: vscode.ExtensionContext) {
  */
 export function deactivate() {
 	const logger = Logger.getInstance()
-	logger.info('Extension deactivated')
+	logger.info('Review Hộ extension deactivated')
 }

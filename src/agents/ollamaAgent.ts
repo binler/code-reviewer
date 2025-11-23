@@ -127,7 +127,7 @@ function safeParse(output: string, original: string, logger: Logger): AgentOutpu
     return fallback
 }
 
-export async function analyzeWithDeepseek(input: string): Promise<AgentOutput> {
+export async function analyzeWithOllama(input: string): Promise<AgentOutput> {
 	const logger = Logger.getInstance()
 	const configService = new ConfigService()
 	const prompt = buildPrompt(input)
@@ -135,7 +135,7 @@ export async function analyzeWithDeepseek(input: string): Promise<AgentOutput> {
 	try {
 		logger.info('Starting code analysis')
 		const responseText = await callOllama(prompt, configService, logger)
-		const result = safeParse(responseText, input, logger)
+        const result = safeParse(responseText, input, logger)
 		logger.info('Analysis completed successfully')
 		return result
 	} catch (e: any) {
@@ -146,7 +146,7 @@ export async function analyzeWithDeepseek(input: string): Promise<AgentOutput> {
 		return {
 			type: 'suggestion',
 			language: 'vi',
-			summary: `❌ Không thể kết nối Ollama: ${msg}`,
+            summary: `❌ Không thể kết nối Ollama: ${msg}`,
 			code_fix: `
 📋 Các bước khắc phục:
 
@@ -159,8 +159,8 @@ export async function analyzeWithDeepseek(input: string): Promise<AgentOutput> {
 3️⃣ Kiểm tra model đã cài đặt:
    \`ollama list\`
 
-4️⃣ Nếu thiếu deepseek-v3, cài đặt:
-   \`ollama pull deepseek-v3\`
+4️⃣ Kiểm tra model mong muốn đã cài đặt:
+   \`ollama pull llama3.2:latest\` (hoặc model khác)
 
 5️⃣ Kiểm tra API URL trong Settings:
    Mặc định: http://localhost:11434/api/generate
