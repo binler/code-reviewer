@@ -1,56 +1,106 @@
 <!doctype html>
 <html lang="vi">
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; script-src 'nonce-static'; style-src 'unsafe-inline'; font-src https: data:; connect-src *;">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DeepSeek Agent</title>
-  <style>
-    body { font-family: system-ui, sans-serif; padding: 12px; }
-    header { display: flex; justify-content: space-between; align-items: center; }
-    button { padding: 6px 10px; }
-    pre { background: #111; color: #ddd; padding: 10px; overflow: auto; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
-    .card { border: 1px solid #333; border-radius: 6px; padding: 10px; }
-    .title { font-weight: 600; margin-bottom: 6px; }
-    .hunk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .hunk-old { background: #220; color: #f8d7da; padding: 8px; }
-    .hunk-new { background: #021; color: #d4edda; padding: 8px; }
-  </style>
-</head>
-<body>
-<header>
-  <h2>DeepSeek Agent</h2>
-  <button id="analyze">Phân tích tệp hiện tại</button>
-</header>
-  <div id="status"></div>
-  <div class="grid">
-    <div class="card">
-      <div class="title">Đề xuất sửa</div>
-      <div id="fix"></div>
-    </div>
-    <div class="card">
-      <div class="title">Lý do</div>
-      <div id="reason"></div>
-    </div>
-    <div class="card">
-      <div class="title">Mã cải thiện</div>
-      <pre id="code"></pre>
-      <div style="margin-top:8px; display:flex; gap:8px;">
-        <button id="apply">Áp dụng sửa</button>
-        <button id="preview">Xem Diff</button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="title">Các khối thay đổi (Hunks)</div>
-      <div style="margin-bottom:8px; display:flex; gap:8px; align-items:center;">
-        <button id="applyHunks">Áp dụng hunks đã chọn</button>
-        <label><input type="checkbox" id="toggleAll"> Chọn tất cả</label>
-      </div>
-      <div id="hunks"></div>
-    </div>
 
-  </div>
-  <script nonce="static" src="__MAIN_JS__"></script>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="Content-Security-Policy"
+		content="default-src 'none'; img-src https: data:; script-src 'nonce-{{NONCE}}'; style-src 'nonce-{{NONCE}}'; font-src https: data:; connect-src http://localhost:*;">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>DeepSeek Agent</title>
+	<style nonce="{{NONCE}}">
+		body {
+			font-family: system-ui, sans-serif;
+			padding: 12px;
+		}
+
+		header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+		button {
+			padding: 6px 10px;
+		}
+
+		pre {
+			background: #111;
+			color: #ddd;
+			padding: 10px;
+			overflow: auto;
+		}
+
+		.grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+			gap: 12px;
+		}
+
+		.card {
+			border: 1px solid #333;
+			border-radius: 6px;
+			padding: 10px;
+		}
+
+		.title {
+			font-weight: 600;
+			margin-bottom: 6px;
+		}
+
+		.hunk-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 8px;
+		}
+
+		.hunk-old {
+			background: #220;
+			color: #f8d7da;
+			padding: 8px;
+		}
+
+		.hunk-new {
+			background: #021;
+			color: #d4edda;
+			padding: 8px;
+		}
+	</style>
+</head>
+
+<body>
+	<header>
+		<h2>DeepSeek Agent</h2>
+		<button id="analyze">Phân tích tệp hiện tại</button>
+	</header>
+	<div id="status"></div>
+	<div class="grid">
+		<div class="card">
+			<div class="title">Đề xuất sửa</div>
+			<div id="fix"></div>
+		</div>
+		<div class="card">
+			<div class="title">Lý do</div>
+			<div id="reason"></div>
+		</div>
+		<div class="card">
+			<div class="title">Mã cải thiện</div>
+			<pre id="code"></pre>
+			<div style="margin-top:8px; display:flex; gap:8px;">
+				<button id="apply">Áp dụng sửa</button>
+				<button id="preview">Xem Diff</button>
+			</div>
+		</div>
+		<div class="card">
+			<div class="title">Các khối thay đổi (Hunks)</div>
+			<div style="margin-bottom:8px; display:flex; gap:8px; align-items:center;">
+				<button id="applyHunks">Áp dụng hunks đã chọn</button>
+				<label><input type="checkbox" id="toggleAll"> Chọn tất cả</label>
+			</div>
+			<div id="hunks"></div>
+		</div>
+
+	</div>
+	<script nonce="{{NONCE}}" src="__MAIN_JS__"></script>
 </body>
+
 </html>
