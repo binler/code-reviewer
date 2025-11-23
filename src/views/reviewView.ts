@@ -9,11 +9,16 @@ export class ReviewViewProvider implements vscode.WebviewViewProvider {
   private lastGitError?: string
   private diff = new DiffService()
   private fileDecos = new Map<string, vscode.TextEditorDecorationType[]>()
+  private fileThreads = new Map<string, vscode.CommentThread[]>()
+  private commentController = vscode.comments.createCommentController('deepseek-review', 'Code Review')
 
   resolveWebviewView(webviewView: vscode.WebviewView) {
     this.view = webviewView
     webviewView.webview.options = { enableScripts: true }
     webviewView.webview.html = getHtml(webviewView.webview)
+    webviewView.onDidDispose(() => {
+      this.commentController.dispose()
+    })
     webviewView.webview.onDidReceiveMessage(async msg => {
       if (msg?.type === 'loadBranches') {
         const branches = await this.getBranches()
@@ -153,6 +158,36 @@ export class ReviewViewProvider implements vscode.WebviewViewProvider {
       const prev = this.fileDecos.get(key) || []
       prev.forEach(d => d.dispose())
       this.fileDecos.set(key, [potential, refactor])
+
+      const prevThreads = this.fileThreads.get(key) || []
+      prevThreads.forEach(t => t.dispose())
+      const threads: vscode.CommentThread[] = []
+      for (const h of hunks) {
+        const start = h.startLine < doc.lineCount ? doc.lineAt(Math.max(h.startLine, 0)).range.start : doc.lineAt(doc.lineCount - 1).range.end
+        const end = h.endLine >= h.startLine && h.endLine < doc.lineCount ? doc.lineAt(h.endLine).range.end : start
+        const badge = ((payload?.summary || '') + (payload?.code_fix || '') + (payload?.reasoning || '')).toLowerCase().includes('lỗi') ? 'Potential Issue' : 'Refactor Suggestion'
+        const md = new vscode.MarkdownString()
+        md.isTrusted = true
+        md.appendMarkdown(`### ${badge}\n\n`)
+        if (badge === 'Potential Issue') {
+          md.appendMarkdown(`${payload?.summary || ''}\n\n`)
+        } else {
+          md.appendMarkdown(`${payload?.code_fix || ''}\n\n`)
+        }
+        const minus = h.oldLines.map(l => `- ${l}`).join('\n')
+        const plus = h.newLines.map(l => `+ ${l}`).join('\n')
+        md.appendCodeblock(`${minus}\n${plus}`)
+        const thread = this.commentController.createCommentThread(uri, new vscode.Range(start, end), [
+          {
+            body: md,
+            mode: vscode.CommentMode.Preview,
+            author: { name: 'CodeRabbit' },
+            label: badge
+          } as vscode.Comment
+        ])
+        threads.push(thread)
+      }
+      this.fileThreads.set(key, threads)
     } catch {}
   }
 }

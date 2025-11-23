@@ -4,7 +4,7 @@ import { DEFAULTS } from '../core/Constants'
 
 type AgentOutput = {
 	type: 'suggestion'
-	language: 'vi'
+	language: string
 	summary: string
 	code_fix: string
 	reasoning: string
@@ -12,39 +12,30 @@ type AgentOutput = {
 }
 
 function buildPrompt(input: string) {
-	const tpl = `You are an expert code reviewer and refactoring specialist. Your task is to analyze the provided source code and provide a comprehensive review with actionable improvements.
+    const tpl = `Bạn là chuyên gia review và refactor mã. Phân tích đoạn mã sau và trả về JSON đúng schema.
 
-CRITICAL REQUIREMENTS:
-1. Respond ONLY with valid JSON (no additional text before or after)
-2. Include ALL required fields: type, language, summary, code_fix, reasoning, improved_code
-3. Ensure the response is well-formed and parseable JSON
-4. Write summary, code_fix, and reasoning fields in Vietnamese (tiếng Việt)
-5. Keep improved_code in the original language of the source code
+YÊU CẦU:
+1) Chỉ trả về JSON hợp lệ, không kèm văn bản ngoài JSON.
+2) Bắt buộc đủ các trường: type, language, summary, code_fix, reasoning, improved_code.
+3) language phải là "vi". Các trường summary, code_fix, reasoning viết tiếng Việt.
+4) improved_code giữ nguyên ngôn ngữ của mã gốc và là phiên bản đã cải thiện đầy đủ.
+5) Không chèn ký tự thoát không cần thiết. Sử dụng \n cho xuống dòng nếu cần.
 
-SOURCE CODE TO REVIEW:
+MÃ CẦN REVIEW:
 \`\`\`
 ${input}
 \`\`\`
 
-REVIEW GUIDELINES:
-1. Identify critical issues: security vulnerabilities, performance problems, memory leaks, logic errors
-2. Check code quality: readability, maintainability, naming conventions, code style
-3. Analyze best practices: design patterns, SOLID principles, error handling
-4. Suggest concrete improvements: refactoring opportunities, optimization techniques
-5. Consider edge cases: null checks, boundary conditions, error scenarios
-
-RESPONSE JSON STRUCTURE (must be valid JSON):
+SCHEMA:
 {
   "type": "suggestion",
   "language": "vi",
-  "summary": "Concise summary of main issues found (max 150 chars)",
-  "code_fix": "Specific issues identified and how to fix them",
-  "reasoning": "Detailed explanation of why these changes are important",
-  "improved_code": "Complete refactored version of the code with improvements applied"
-}
-
-Provide the JSON response EXACTLY as specified above, ensuring all Vietnamese fields contain meaningful content and are properly formatted.`
-	return tpl
+  "summary": "Tóm tắt vấn đề chính (≤150 ký tự)",
+  "code_fix": "Danh sách đề xuất sửa kèm lý do ngắn gọn",
+  "reasoning": "Giải thích chi tiết tại sao cần thay đổi",
+  "improved_code": "Mã đã refactor toàn bộ"
+}`
+    return tpl
 }
 
 async function callOllama(prompt: string, configService: ConfigService, logger: Logger): Promise<string> {
@@ -94,34 +85,46 @@ async function callOllama(prompt: string, configService: ConfigService, logger: 
 }
 
 function safeParse(output: string, original: string, logger: Logger): AgentOutput {
-	const extracted = extractJson(output)
-	try {
-		const obj = extracted ? JSON.parse(extracted) : JSON.parse(output)
-		if (
-			obj &&
-			obj.type === 'suggestion' &&
-			obj.language === 'vi' &&
-			typeof obj.summary === 'string' &&
-			typeof obj.code_fix === 'string' &&
-			typeof obj.reasoning === 'string' &&
-			typeof obj.improved_code === 'string'
-		) {
-			logger.info('Successfully parsed agent output')
-			return obj as AgentOutput
-		}
-	} catch (e) {
-		logger.warn('Failed to parse JSON response, using fallback')
-	}
+    const extracted = extractJson(output)
+    try {
+        const obj = extracted ? JSON.parse(extracted) : JSON.parse(output)
+        if (
+            obj &&
+            obj.type === 'suggestion' &&
+            typeof obj.summary === 'string' &&
+            typeof obj.code_fix === 'string' &&
+            typeof obj.reasoning === 'string' &&
+            typeof obj.improved_code === 'string'
+        ) {
+            const clean = (v: any, fb: string) => {
+                const s = typeof v === 'string' ? v : fb
+                const t = s.replace(/\n/g, '\n').trim()
+                return t.length > 600 ? t.slice(0, 600) + '…' : t
+            }
+            const normalized: AgentOutput = {
+                type: 'suggestion',
+                language: typeof obj.language === 'string' ? obj.language : 'vi',
+                summary: clean(obj.summary, ''),
+                code_fix: clean(obj.code_fix, ''),
+                reasoning: clean(obj.reasoning, ''),
+                improved_code: typeof obj.improved_code === 'string' ? obj.improved_code : original
+            }
+            logger.info('Successfully parsed agent output')
+            return normalized
+        }
+    } catch (e) {
+        logger.warn('Failed to parse JSON response, using fallback')
+    }
 
-	const fallback: AgentOutput = {
-		type: 'suggestion',
-		language: 'vi',
-		summary: output || 'Không thể phân tích JSON từ phản hồi.',
-		code_fix: 'Xem đề xuất ở phần tóm tắt. Hãy đảm bảo định dạng JSON chuẩn.',
-		reasoning: 'Mô hình trả về định dạng khác yêu cầu. Đã cung cấp tóm tắt dựa trên phản hồi thô.',
-		improved_code: original
-	}
-	return fallback
+    const fallback: AgentOutput = {
+        type: 'suggestion',
+        language: 'vi',
+        summary: 'Không thể phân tích JSON từ phản hồi.',
+        code_fix: 'Đảm bảo phản hồi là JSON hợp lệ theo schema yêu cầu.',
+        reasoning: 'Phản hồi không đúng định dạng. Đã cung cấp hướng dẫn khắc phục.',
+        improved_code: original
+    }
+    return fallback
 }
 
 export async function analyzeWithDeepseek(input: string): Promise<AgentOutput> {
