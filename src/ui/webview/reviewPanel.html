@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+	<meta charset="utf-8" />
+	<meta http-equiv="Content-Security-Policy" content="{{CSP}}" />
+	<title>Review Hộ</title>
+	<link rel="stylesheet" href="__STYLES__" />
+</head>
+
+<body>
+	<div class="layout">
+		<aside class="sidebar">
+			<div class="nav">
+				<button data-tab="overview" class="nav-btn codicon codicon-home" title="Overview"></button>
+				<button data-tab="files" class="nav-btn codicon codicon-files" title="Files"></button>
+				<button data-tab="issues" class="nav-btn codicon codicon-warning" title="Issues"></button>
+				<button data-tab="settings" class="nav-btn codicon codicon-settings-gear" title="Settings"></button>
+			</div>
+		</aside>
+		<main class="content">
+			<section id="overview" class="tab active">
+				<div id="summaryCard" class="card"></div>
+			</section>
+			<section id="files" class="tab">
+				<div id="fileTree" class="card"></div>
+			</section>
+			<section id="issues" class="tab">
+				<div id="issuesList" class="card"></div>
+			</section>
+			<section id="settings" class="tab">
+				<div id="settingsPanel" class="card"></div>
+			</section>
+		</main>
+	</div>
+	<script nonce="{{NONCE}}" src="__MAIN_JS__"></script>
+</body>
+
+</html>

@@ -1,16 +1,31 @@
 import * as vscode from 'vscode'
 import { ReviewPanel } from './panels/ReviewPanel'
 import { SettingsViewProvider } from './views/settingsView'
-import { ReviewViewProvider } from './views/reviewView'
+import { ReviewViewProvider } from './providers/reviewViewProvider'
+import { SidebarProvider } from './providers/SidebarProvider'
+import { NavigationService } from './services/NavigationService'
 import { Logger } from './core/Logger'
 import { COMMANDS, VIEWS } from './core/Constants'
+import { registerReviewCommands } from './commands/reviewCommand'
+import { registerConfigCommands } from './commands/configCommand'
+import { registerOllamaCommands } from './commands/ollamaCommand'
+import { Container, TOKENS } from './utils/di'
+import { ConfigService } from './services/ConfigService'
+import { GitService } from './services/gitService'
+import { DiffService } from './services/DiffService'
 
 /**
  * Extension activation entry point
  */
 export function activate(context: vscode.ExtensionContext) {
-	const logger = Logger.getInstance()
-	logger.info('Activating Review Hộ extension')
+    const logger = Logger.getInstance()
+    logger.info('Activating Review Hộ extension')
+
+    const container = new Container()
+    container.register(TOKENS.Logger, logger)
+    container.register(TOKENS.ConfigService, new ConfigService(context))
+    container.register(TOKENS.GitService, new GitService())
+    container.register(TOKENS.DiffService, new DiffService())
 
 	// Check workspace trust
 	if (!vscode.workspace.isTrusted) {
@@ -21,76 +36,34 @@ export function activate(context: vscode.ExtensionContext) {
 		// Don't return - allow extension to activate, but commands will show warnings
 	}
 
-	// Register "Open Panel" command
-	context.subscriptions.push(
-		vscode.commands.registerCommand(COMMANDS.OPEN_PANEL, async () => {
-			try {
-				logger.info('Executing openPanel command')
-				const panel = await ReviewPanel.createOrShow(context)
+    registerReviewCommands(context)
 
-				// Send ready message if there's an active editor
-				if (vscode.window.activeTextEditor) {
-					panel.postReady()
-				}
-			} catch (err) {
-				logger.error('Failed to open panel', err)
-				vscode.window.showErrorMessage(`Không thể mở panel: ${err instanceof Error ? err.message : String(err)}`)
-			}
-		})
-	)
-
-	// Register "Analyze File" command
-	context.subscriptions.push(
-		vscode.commands.registerCommand(COMMANDS.ANALYZE_FILE, async (uri?: vscode.Uri) => {
-			try {
-				logger.info('Executing analyzeFile command')
-
-				// Check workspace trust before analyzing
-				if (!vscode.workspace.isTrusted) {
-					vscode.window.showWarningMessage('Cannot analyze files in untrusted workspace')
-					return
-				}
-
-				const panel = await ReviewPanel.createOrShow(context)
-
-				if (uri) {
-					// Analyze specific file from context menu
-					logger.info(`Analyzing file from URI: ${uri.toString()}`)
-					await panel.analyzeDocument(uri)
-				} else {
-					// Analyze current active editor
-					if (!vscode.window.activeTextEditor) {
-						vscode.window.showWarningMessage('Không có tệp đang mở để phân tích')
-						return
-					}
-					logger.info('Analyzing active editor')
-					await panel.analyzeDocument(vscode.window.activeTextEditor.document.uri)
-				}
-			} catch (err) {
-				logger.error('Failed to analyze file', err)
-				vscode.window.showErrorMessage(`Không thể phân tích tệp: ${err instanceof Error ? err.message : String(err)}`)
-			}
-		})
-	)
+    registerConfigCommands(context)
+    registerOllamaCommands(context)
 
 	// Register settings view provider
-	const settingsProvider = new SettingsViewProvider()
-	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(VIEWS.SETTINGS, settingsProvider)
-	)
+    const settingsProvider = new SettingsViewProvider()
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(VIEWS.SETTINGS, settingsProvider)
+    )
 
-	const reviewProvider = new ReviewViewProvider()
-	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(VIEWS.REVIEW, reviewProvider)
-	)
+    const reviewProvider = new SidebarProvider(context.extensionUri)
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(VIEWS.REVIEW, reviewProvider)
+    )
+
+    const nav = NavigationService.getInstance()
+    context.subscriptions.push(vscode.commands.registerCommand('reviewho.applyHunk', async ()=>{ await nav.applyLast() }))
+    context.subscriptions.push(vscode.commands.registerCommand('reviewho.previewHunk', async ()=>{ await nav.previewLast() }))
 
 	// Register logger for disposal
-	context.subscriptions.push({
-		dispose: () => {
-			logger.info('Deactivating DeepSeek Agent extension')
-			logger.dispose()
-		}
-	})
+    context.subscriptions.push({
+        dispose: () => {
+            logger.info('Deactivating DeepSeek Agent extension')
+            logger.dispose()
+            container.dispose()
+        }
+    })
 
 	logger.info('Review Hộ extension activated successfully')
 }

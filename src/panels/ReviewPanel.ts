@@ -5,6 +5,7 @@ import { DiffService, Hunk } from '../services/DiffService'
 import { ConfigService } from '../services/ConfigService'
 import { Logger } from '../core/Logger'
 import { MESSAGE_TYPES } from '../core/Constants'
+import { OllamaService } from '../services/ollamaService'
 
 /**
  * Manages the DeepSeek Agent webview panel with proper resource disposal
@@ -16,25 +17,29 @@ export class ReviewPanel {
 	private disposables: vscode.Disposable[] = []
 	private lastAnalyzedDocUri: vscode.Uri | undefined
 	private readonly diffService: DiffService
-	private readonly configService: ConfigService
-	private readonly logger: Logger
+    private readonly configService: ConfigService
+    private readonly logger: Logger
+    private readonly ollamaService: OllamaService
 
 	private constructor(private readonly context: vscode.ExtensionContext) {
 		this.diffService = new DiffService()
-		this.configService = new ConfigService(context)
-		this.logger = Logger.getInstance()
+        this.configService = new ConfigService(context)
+        this.logger = Logger.getInstance()
+        this.ollamaService = new OllamaService(this.configService, this.logger)
 
 		this.logger.info('Creating DeepSeek panel')
 
-		this.panel = vscode.window.createWebviewPanel(
-			'deepseekAgentPanel',
-			'DeepSeek Agent',
-			vscode.ViewColumn.One,
-			{
-				enableScripts: true,
-				localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'webview')]
-			}
-		)
+        this.panel = vscode.window.createWebviewPanel(
+            'deepseekAgentPanel',
+            'DeepSeek Agent',
+            vscode.ViewColumn.One,
+            {
+                enableScripts: true,
+                localResourceRoots: [
+                  vscode.Uri.joinPath(context.extensionUri, 'src', 'ui', 'webview')
+                ]
+            }
+        )
 
 		// Register disposal handler
 		this.disposables.push(
@@ -68,19 +73,16 @@ export class ReviewPanel {
 	/**
 	 * Load HTML content into webview
 	 */
-	private async loadWebviewContent(): Promise<void> {
-		const htmlUri = vscode.Uri.joinPath(this.context.extensionUri, 'webview', 'index.html')
-		const html = await vscode.workspace.fs.readFile(htmlUri)
-		const htmlStr = Buffer.from(html).toString('utf8')
-
-		// Generate dynamic nonce for CSP
-		const nonce = this.generateNonce()
-		const scriptUri = this.getWebviewUri(['webview', 'main.js'])
-
-		this.panel.webview.html = htmlStr
-			.replace(/__MAIN_JS__/g, scriptUri.toString())
-			.replace(/{{NONCE}}/g, nonce)
-	}
+    private async loadWebviewContent(): Promise<void> {
+        const nonce = this.generateNonce()
+        const htmlUri = vscode.Uri.joinPath(this.context.extensionUri, 'src', 'ui', 'webview', 'reviewPanel.html')
+        const cssUri = this.getWebviewUri(['src','ui','webview','styles.css'])
+        const jsUri = this.getWebviewUri(['src','ui','webview','main.js'])
+        const htmlBuf = await vscode.workspace.fs.readFile(htmlUri)
+        const htmlStr = Buffer.from(htmlBuf).toString('utf8')
+        const csp = `default-src 'none'; img-src ${this.panel.webview.cspSource} https:; script-src 'nonce-${nonce}' ${this.panel.webview.cspSource}; style-src ${this.panel.webview.cspSource} 'unsafe-inline';`
+        this.panel.webview.html = htmlStr.replace(/__MAIN_JS__/g, jsUri.toString()).replace(/__STYLES__/g, cssUri.toString()).replace(/{{NONCE}}/g, nonce).replace(/{{CSP}}/g, csp)
+    }
 
 	/**
 	 * Generate cryptographically secure nonce for CSP
@@ -92,10 +94,10 @@ export class ReviewPanel {
 	/**
 	 * Get webview URI for resources
 	 */
-	private getWebviewUri(pathSegments: string[]): vscode.Uri {
-		const uri = vscode.Uri.joinPath(this.context.extensionUri, ...pathSegments)
-		return this.panel.webview.asWebviewUri(uri)
-	}
+    private getWebviewUri(pathSegments: string[]): vscode.Uri {
+        const uri = vscode.Uri.joinPath(this.context.extensionUri, ...pathSegments)
+        return this.panel.webview.asWebviewUri(uri)
+    }
 
 	/**
 	 * Handle messages from webview
@@ -166,15 +168,16 @@ export class ReviewPanel {
 				progress.report({ message: 'Đang phân tích...', increment: 0 })
 
                 const result = await analyzeWithOllama(text)
-				const hunks = this.diffService.computeHunks(text, result.improved_code || text)
+                const summary = await this.ollamaService.review(editor.document.languageId, 'unknown', text)
+                const hunks = this.diffService.computeHunks(text, result.improved_code || text)
 
 				progress.report({ increment: 100 })
 
 				this.panel.webview.postMessage({
 					type: MESSAGE_TYPES.RESULT,
-					payload: result,
-					hunks
-				})
+                    payload: { ...result, summary: summary.summary },
+                    hunks
+                })
 			}
 		)
 	}
@@ -197,15 +200,16 @@ export class ReviewPanel {
 				progress.report({ message: 'Đang phân tích...', increment: 0 })
 
                 const result = await analyzeWithOllama(text)
-				const hunks = this.diffService.computeHunks(text, result.improved_code || text)
+                const summary = await this.ollamaService.review(doc.languageId, 'unknown', text)
+                const hunks = this.diffService.computeHunks(text, result.improved_code || text)
 
 				progress.report({ increment: 100 })
 
 				this.panel.webview.postMessage({
 					type: MESSAGE_TYPES.RESULT,
-					payload: result,
-					hunks
-				})
+                    payload: { ...result, summary: summary.summary },
+                    hunks
+                })
 			}
 		)
 	}
